@@ -1,0 +1,26 @@
+target_url: "https://example.com"
+
+allowed_domains:
+  - "example.com"
+
+excluded_paths: []
+
+scan_depth: shallow
+
+output_dir: "./reports/example"
+
+rate_limit:
+  requests_per_second: 5
+
+ai_providers:
+  - name: openrouter
+    api_key: "${OPENROUTER_API_KEY}"
+    role: any
+    max_tokens: 2048
+    temperature: 0.7
+
+mcp_servers:
+  - name: fetch-mcp
+    command: "C:\\Users\\victor\\.local\\bin\\mcp-server-fetch.exe"
+    args: []
+    env: []

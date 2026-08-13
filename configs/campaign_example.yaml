@@ -1,0 +1,43 @@
+# Templar Campaign Configuration
+# Run: go run ./cmd/templar crusade start --config configs/campaign_example.yaml
+# Replace <TARGET> and <SCOPE_DOMAIN> before running.
+
+target_url: "https://<TARGET>"
+
+allowed_domains:
+  - "<SCOPE_DOMAIN>"
+  - "*.<SCOPE_DOMAIN>"
+
+excluded_paths:
+  - "/logout"
+  - "/signout"
+  - "/delete"
+
+scan_depth: standard   # shallow | standard | deep | exhaustive
+
+output_dir: "./reports"
+
+rate_limit:
+  requests_per_second: 10
+
+# ── AI Provider ──────────────────────────────────────────────────────────────
+# API key is loaded from environment variable OPENROUTER_API_KEY
+# Set it with: $env:OPENROUTER_API_KEY = "sk-or-v1-8cf...f34"
+ai_providers:
+  - name: openrouter
+    api_key: "${sk-or-v1-8cf...f34}"
+    role: any
+    max_tokens: 4096
+    temperature: 0.2
+
+# ── MCP Servers ───────────────────────────────────────────────────────────────
+mcp_servers:
+  - name: fetch-mcp
+    command: "C:\\Users\\victor\\.local\\bin\\mcp-server-fetch.exe"
+    args: []
+    env: []
+
+  - name: kazuph-fetch
+    command: npx
+    args: ["@kazuph/mcp-fetch"]
+    env: []

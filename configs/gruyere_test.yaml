@@ -1,0 +1,68 @@
+# Templar Campaign Configuration for Google Gruyere Sandbox
+# Run: templar crusade start --config configs/gruyere_test.yaml
+
+target_url: "https://google-gruyere.appspot.com/587129948244799578676866416043766319720/"
+
+allowed_domains:
+  - "google-gruyere.appspot.com"
+
+excluded_paths:
+  - "/logout"
+  - "/signout"
+  - "/delete"
+
+scan_depth: shallow   # Use shallow for initial testing
+
+output_dir: "./reports/gruyere_test"
+
+rate_limit:
+  requests_per_second: 5  # Be gentle on the sandbox
+
+# ── AI Provider ──────────────────────────────────────────────────────────────
+# API key is loaded from environment variable OPENROUTER_API_KEY
+# Set it with: $env:OPENROUTER_API_KEY = "sk-or-v1-8cf...f34"
+ai_providers:
+  - name: openrouter
+    api_key: "${OPENROUTER_API_KEY}"
+    role: any
+    max_tokens: 2048
+    temperature: 0.2
+
+# ── CVE Sources Configuration ───────────────────────────────────────────────
+# Enable the newly implemented CVE source adapters
+cveSources:
+  - name: nvd
+    enabled: true
+    timeoutSeconds: 30
+  
+  - name: osv
+    enabled: true
+    timeoutSeconds: 30
+  
+  - name: hackerone
+    enabled: false  # Disabled as we don't have API keys for testing
+    hackeroneApiKey: "${HACKERONE_API_KEY}"
+    hackeroneProgramHandle: "gruyere"
+    timeoutSeconds: 30
+  
+  - name: github
+    enabled: false  # Disabled as we don't have tokens for testing
+    githubToken: "${GITHUB_TOKEN}"
+    timeoutSeconds: 30
+  
+  - name: exploitdb
+    enabled: true
+    timeoutSeconds: 30
+  
+  - name: custom_feed
+    enabled: false  # Disabled as we don't have custom feeds configured
+    feedUrl: ""
+    feedFormat: "json"
+    timeoutSeconds: 30
+
+# ── MCP Servers (optional) ──────────────────────────────────────────────────
+# mcp_servers:
+#   - name: fetch-mcp
+#     command: "C:\\Users\\victor\\.local\\bin\\mcp-server-fetch.exe"
+#     args: []
+#     env: []

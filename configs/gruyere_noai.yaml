@@ -1,0 +1,47 @@
+# Templar Campaign Configuration for Google Gruyere Sandbox - No AI Required
+# Run: templar crusade start --config configs\gruyere_noai.yaml
+
+target_url: "https://google-gruyere.appspot.com/587129948244799578676866416043766319720/"
+
+allowed_domains:
+  - "google-gruyere.appspot.com"
+
+excluded_paths:
+  - "/logout"
+  - "/signout"
+  - "/delete"
+
+scan_depth: shallow   # Use shallow for initial testing
+
+output_dir: "./reports/gruyere_noai"
+
+rate_limit:
+  requests_per_second: 5  # Be gentle on the sandbox
+
+# ── AI Provider - Minimal for testing ─────────────────────────────────────────
+ai_providers:
+  - name: openrouter
+    api_key: "dummy_key_will_fail_but_continue"
+    role: any
+    max_tokens: 2048
+    temperature: 0.7
+
+# ── CVE Sources Configuration - Minimal ────────────────────────────────────────
+cveSources:
+  - name: nvd
+    enabled: false  # Disable external calls for testing
+  
+  - name: osv
+    enabled: false  # Disable external calls for testing
+  
+  - name: hackerone
+    enabled: false
+  
+  - name: github
+    enabled: false
+  
+  - name: exploitdb
+    enabled: false  # Disabled as searchsploit not installed
+  
+  - name: custom_feed
+    enabled: false

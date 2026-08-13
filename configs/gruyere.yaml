@@ -1,0 +1,62 @@
+# Templar Campaign Configuration for Google Gruyere
+# Google Gruyere is an intentionally vulnerable web application for security training
+# Target: https://google-gruyere.appspot.com/587129948244799578676866416043766319720/
+
+target_url: "https://google-gruyere.appspot.com/587129948244799578676866416043766319720/"
+
+allowed_domains:
+  - "google-gruyere.appspot.com"
+
+excluded_paths:
+  - "/logout"
+  - "/signout" 
+  - "/delete"
+
+scan_depth: standard   # shallow | standard | deep | exhaustive
+
+output_dir: "./reports/gruyere"
+
+rate_limit:
+  requests_per_second: 5  # Be gentle on training application
+
+# ── AI Provider ──────────────────────────────────────────────────────────────
+# API key is loaded from environment variable OPENROUTER_API_KEY
+# Set it with: $env:OPENROUTER_API_KEY = "sk-or-v1-8cf...f34"
+ai_providers:
+  - name: openrouter
+    api_key: "${OPENROUTER_API_KEY}"
+    role: any
+    max_tokens: 4096
+    temperature: 0.7
+
+# ── CVE Sources ──────────────────────────────────────────────────────────────
+# Test our new CVE source integration with safe defaults
+cveSources:
+  - name: "nvd"
+    enabled: true
+    timeoutSeconds: 30
+  
+  - name: "osv" 
+    enabled: true
+    timeoutSeconds: 30
+  
+  - name: "github"
+    enabled: true
+    timeoutSeconds: 30
+    githubToken: "${GITHUB_TOKEN}"  # Optional for better rate limits
+  
+  - name: "exploitdb"
+    enabled: true
+    timeoutSeconds: 30
+
+# ── MCP Servers ───────────────────────────────────────────────────────────────
+mcp_servers:
+  - name: fetch-mcp
+    command: "C:\\Users\\victor\\.local\\bin\\mcp-server-fetch.exe"
+    args: []
+    env: []
+
+  - name: kazuph-fetch
+    command: npx
+    args: ["@kazuph/mcp-fetch"]
+    env: []

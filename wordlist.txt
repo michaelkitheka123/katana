@@ -1,0 +1,6 @@
+admin
+login
+api
+dashboard
+user
+test

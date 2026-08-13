@@ -1,0 +1,27 @@
+# Secrets — never commit these
+.env
+*.env
+.env.*
+
+# Compiled binaries
+*.exe
+*.out
+templar.exe
+smoketest.exe
+
+# Campaign artifacts and reports
+reports/
+templar.db
+*.db
+
+# Test artifacts
+tests/integration/pilgrims-rest/
+last_run.txt
+test_payload.json
+
+# Go build cache
+/vendor/
+
+# OS artifacts
+Thumbs.db
+.DS_Store

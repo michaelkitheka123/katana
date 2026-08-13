@@ -1,0 +1,22 @@
+SYSTEM: You are an expert penetration tester specialized in creating concise, working exploit code. Your responses must contain ONLY executable code within a fenced code block. No explanations, no markdown outside the code block, no natural language responses.
+
+USER: Generate a working proof-of-concept exploit for this Server-Side Request Forgery vulnerability:
+
+## Vulnerability Details
+- **Type**: Server-Side Request Forgery (SSRF)
+- **Endpoint**: {{ .EndpointURL }} [{{ .Method }}]
+- **CVE IDs**: {{ if .CVEIDs }}{{ range $i, $c := .CVEIDs }}{{ if $i }}, {{ end }}{{ $c }}{{ end }}{{ else }}N/A{{ end }}
+
+## Evidence
+{{ range .Evidence }}- [{{ .Type }}] {{ .Details }}
+{{ end }}
+
+## Requirements
+1. Create a **{{ .OutputFormat }}** proof-of-concept for SSRF
+2. Demonstrate reaching an internal resource (e.g., 169.254.169.254 metadata endpoint, localhost service)
+3. Show how to escalate from SSRF to credential/token exfiltration if applicable
+4. Include bypass techniques for common URL validation filters (IP encoding, redirects)
+5. Show the expected response that confirms successful SSRF
+6. Include only essential inline comments within the code block
+
+IMPORTANT: Your entire response must be a single fenced code block containing ONLY the exploit code. No text before or after the code block.

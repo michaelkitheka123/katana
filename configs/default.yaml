@@ -1,0 +1,9 @@
+# Templar Default Configuration
+scanDepth: "standard"
+
+rateLimits:
+  requestsPerSecond: 10
+  timeoutSeconds: 30
+
+maxConcurrency: 5
+outputDir: "./reports"
