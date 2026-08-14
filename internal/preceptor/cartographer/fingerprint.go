@@ -10,14 +10,17 @@ import (
 	"github.com/templar-framework/templar/internal/shared/tools"
 )
 
-// wappalyzerOutput represents the JSON output format of the wappalyzer CLI
+// wappalyzerOutput represents the actual JSON output format of the wappalyzer CLI.
+// The CLI returns: {"urls": {"http://example.com": {"applications": [...], "status": 200}}}
 type wappalyzerOutput struct {
 	URLs map[string]struct {
-		Status int `json:"status"`
+		Status       int `json:"status"`
 		Applications []struct {
-			Name     string `json:"name"`
-			Version  string `json:"version"`
-			Category string `json:"category"`
+			Name       string `json:"name"`
+			Version    string `json:"version"`
+			Categories []struct {
+				Name string `json:"name"`
+			} `json:"categories"`
 		} `json:"applications"`
 	} `json:"urls"`
 }
@@ -86,22 +89,24 @@ func Fingerprint(hosts []shared.DiscoveredHost) ([]shared.TechStackEntry, error)
 	}
 
 	if out != "" {
-		var wOut []struct{
-			Applications []struct {
-				Name     string `json:"name"`
-				Version  string `json:"version"`
-				Categories []struct{
-					Name string `json:"name"`
-				} `json:"categories"`
-			} `json:"applications"`
-		}
+		fmt.Printf("DEBUG: Wappalyzer raw output:\n%s\n\n", out)
+		
+		// Parse the actual Wappalyzer JSON format: {"urls": {"http://target": {...}}}
+		var wOut wappalyzerOutput
 		
 		if err := json.Unmarshal([]byte(out), &wOut); err != nil {
 			fmt.Printf("Warning: Failed to parse Wappalyzer output: %v\n", err)
+			shared.LogAudit(shared.AuditEvent{
+				Timestamp: shared.GetTimestamp(),
+				EventType: "TOOL_FAILURE",
+				Message:   fmt.Sprintf("Wappalyzer JSON parsing failed: %v, output was: %s", err, out),
+			})
 		} else {
-			// In MVP, we map Wappalyzer output to TechStackEntry
-			for _, res := range wOut {
-				for _, app := range res.Applications {
+			// Extract applications from the URLs map
+			for url, urlData := range wOut.URLs {
+				fmt.Printf("DEBUG: Processing URL: %s (status: %d, apps: %d)\n", url, urlData.Status, len(urlData.Applications))
+				
+				for _, app := range urlData.Applications {
 					var version *string
 					if app.Version != "" {
 						version = &app.Version
@@ -112,12 +117,18 @@ func Fingerprint(hosts []shared.DiscoveredHost) ([]shared.TechStackEntry, error)
 						confidence = 0.9 // Higher confidence if version is detected
 					}
 					
-					techStack = append(techStack, shared.TechStackEntry{
+					entry := shared.TechStackEntry{
 						Name:       strings.TrimSpace(app.Name),
 						Category:   mapCategory(app.Categories),
 						Version:    version,
 						Confidence: confidence,
-					})
+					}
+					
+					fmt.Printf("DEBUG: Detected tech: %s (v%s, confidence: %.2f)\n", entry.Name, 
+						func(v *string) string { if v == nil { return "unknown" }; return *v }(version), 
+						confidence)
+					
+					techStack = append(techStack, entry)
 				}
 			}
 		}
@@ -135,6 +146,18 @@ func Fingerprint(hosts []shared.DiscoveredHost) ([]shared.TechStackEntry, error)
 	}
 
 	fmt.Printf("Fingerprinting complete: detected %d technologies\n", len(finalStack))
+	
+	shared.LogAudit(shared.AuditEvent{
+		Timestamp: shared.GetTimestamp(),
+		EventType: "FINGERPRINTING_COMPLETE",
+		Message:   fmt.Sprintf("Detected %d technologies: %v", len(finalStack), func() []string {
+			var names []string
+			for _, t := range finalStack {
+				names = append(names, t.Name)
+			}
+			return names
+		}()),
+	})
 	
 	return finalStack, nil
 }
