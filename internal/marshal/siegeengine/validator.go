@@ -70,6 +70,10 @@ func validateCurl(poc *shared.ProofOfConcept) error {
 
 // validatePython writes the python_script content to a temp file and executes it.
 func validatePython(poc *shared.ProofOfConcept) error {
+	// Extract Python code from markdown code fence if present
+	// LLM responses may include: ```python\ncode\n```
+	pythonCode := extractPythonCode(poc.Content)
+
 	// Write script to a temporary file
 	tmpFile, err := os.CreateTemp("", "templar-poc-*.py")
 	if err != nil {
@@ -79,7 +83,7 @@ func validatePython(poc *shared.ProofOfConcept) error {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	if _, writeErr := tmpFile.WriteString(poc.Content); writeErr != nil {
+	if _, writeErr := tmpFile.WriteString(pythonCode); writeErr != nil {
 		tmpFile.Close()
 		poc.Validated = false
 		poc.ValidationOutput = fmt.Sprintf("VALIDATION_ERROR: failed to write script: %v", writeErr)
@@ -90,6 +94,27 @@ func validatePython(poc *shared.ProofOfConcept) error {
 	stdout, stderr, exitCode, err := tools.Execute("python3", []string{tmpFile.Name()}, validationTimeoutSecs)
 
 	return applyResult(poc, stdout, stderr, exitCode, err)
+}
+
+// extractPythonCode removes markdown code fence wrappers from LLM-generated Python code.
+// Handles: ```python\ncode\n``` or ```\ncode\n```
+func extractPythonCode(content string) string {
+	content = strings.TrimSpace(content)
+
+	// Remove opening fence: ```python or ```
+	if strings.HasPrefix(content, "```python") {
+		content = strings.TrimPrefix(content, "```python")
+	} else if strings.HasPrefix(content, "```") {
+		content = strings.TrimPrefix(content, "```")
+	}
+
+	// Remove closing fence: ```
+	if strings.HasSuffix(content, "```") {
+		content = strings.TrimSuffix(content, "```")
+	}
+
+	// Trim any leading/trailing whitespace after removing fences
+	return strings.TrimSpace(content)
 }
 
 // applyResult writes the execution outcome back into the poc struct.
