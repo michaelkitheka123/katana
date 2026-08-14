@@ -141,27 +141,26 @@ func (h *Hospitaller) Run(
 	wg1.Wait()
 
 	// -------------------------------------------------------------------------
-	// 2. Relic Hunter Layer
+	// 2. Relic Hunter Layer - Using Real Tech Stack from Cartographer
 	//
-	// The original implementation launches CVE and ExploitDB lookups for each
-	// non-empty service. Preserve that behavior, but retain errors.
+	// Query CVE sources for detected technologies (from Wappalyzer fingerprinting)
+	// instead of mocking service versions.
 	// -------------------------------------------------------------------------
 
 	var wg2 sync.WaitGroup
 
-	for _, host := range surface.Hosts {
-		for _, svc := range host.Services {
-
-			if svc == "" || svc == "unknown" {
+	// 2a. Search CVEs for technologies detected by Cartographer
+	if len(surface.TechStack) > 0 {
+		fmt.Printf("[Hospitaller] Processing %d detected technologies for CVE search\n", len(surface.TechStack))
+		
+		for _, tech := range surface.TechStack {
+			// Only search if we have a version
+			if tech.Version == nil || *tech.Version == "" {
+				fmt.Printf("[Hospitaller] Skipping %s: no version detected\n", tech.Name)
 				continue
 			}
 
-			// Preserve the existing MVP behavior from the original file:
-			// service versions are currently mocked as 1.0.0.
-			tech := shared.TechStackEntry{
-				Name:    svc,
-				Version: ptr("1.0.0"),
-			}
+			fmt.Printf("[Hospitaller] CVE search for: %s (v%s)\n", tech.Name, *tech.Version)
 
 			// CVE search
 			wg2.Add(1)
@@ -179,6 +178,7 @@ func (h *Hospitaller) Run(
 				}
 
 				if len(vulns) > 0 {
+					fmt.Printf("[Hospitaller] CVE search found %d vulnerabilities for %s\n", len(vulns), t.Name)
 					mu.Lock()
 					allVulns = append(allVulns, vulns...)
 					mu.Unlock()
@@ -201,11 +201,64 @@ func (h *Hospitaller) Run(
 				}
 
 				if len(vulns) > 0 {
+					fmt.Printf("[Hospitaller] ExploitDB found %d vulnerabilities for %s\n", len(vulns), t.Name)
 					mu.Lock()
 					allVulns = append(allVulns, vulns...)
 					mu.Unlock()
 				}
 			}(tech)
+		}
+	} else {
+		fmt.Println("[Hospitaller] No technologies detected by Cartographer, skipping CVE searches")
+		shared.LogAudit(shared.AuditEvent{
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			EventType: "HOSPITALLER_WARNING",
+			Message:   "No technologies in TechStack; CVE sources will not be queried",
+		})
+	}
+
+	// 2b. Also search for services detected by port scanning (fallback for incomplete fingerprinting)
+	if len(surface.Hosts) > 0 {
+		fmt.Printf("[Hospitaller] Processing %d hosts with port scan results\n", len(surface.Hosts))
+		
+		for _, host := range surface.Hosts {
+			for _, svc := range host.Services {
+
+				if svc == "" || svc == "unknown" {
+					continue
+				}
+
+				// Use host fingerprinting if available, otherwise fallback to port scan service
+				tech := shared.TechStackEntry{
+					Name:    svc,
+					Version: ptr("1.0.0"), // Fallback: assumed version from port scan
+				}
+
+				fmt.Printf("[Hospitaller] Fallback CVE search for port-scanned service: %s\n", svc)
+
+				// CVE search
+				wg2.Add(1)
+
+				go func(t shared.TechStackEntry) {
+					defer wg2.Done()
+
+					vulns, err := relichunter.SearchCVEs(t)
+
+					if err != nil {
+						recordError(
+							fmt.Sprintf("RelicHunter CVE search (fallback) (%s)", t.Name),
+							err,
+						)
+					}
+
+					if len(vulns) > 0 {
+						fmt.Printf("[Hospitaller] Fallback CVE found %d vulnerabilities for %s\n", len(vulns), t.Name)
+						mu.Lock()
+						allVulns = append(allVulns, vulns...)
+						mu.Unlock()
+					}
+				}(tech)
+			}
 		}
 	}
 
