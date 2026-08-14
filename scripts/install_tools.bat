@@ -1,91 +1,93 @@
 @echo off
-setlocal
+REM Install script for Templar dependencies on Windows
+REM Run as Administrator from Command Prompt or PowerShell
 
-set TOOLS=subfinder nuclei katana naabu httpx dnsx ffuf gau gospider
-set TOTAL=9
-set DONE=0
-
-echo.
-echo =====================================================
-echo   TEMPLAR - Installing Security Tools
-echo =====================================================
+echo ========================================
+echo Templar Tool Installation Script
+echo ========================================
 echo.
 
-:: subfinder
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing subfinder...
-go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-if errorlevel 1 (echo   FAILED: subfinder) else (echo   OK: subfinder)
-
-:: nuclei (clean cache first to fix any corrupted zip)
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing nuclei (cleaning cache first)...
-go clean -modcache >nul 2>&1
-go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-if errorlevel 1 (echo   FAILED: nuclei) else (echo   OK: nuclei)
-
-:: katana
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing katana...
-go install github.com/projectdiscovery/katana/cmd/katana@latest
-if errorlevel 1 (echo   FAILED: katana) else (echo   OK: katana)
-
-:: naabu
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing naabu...
-go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-if errorlevel 1 (echo   FAILED: naabu) else (echo   OK: naabu)
-
-:: httpx (PD version)
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing httpx (ProjectDiscovery)...
-go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-if errorlevel 1 (echo   FAILED: httpx) else (echo   OK: httpx)
-
-:: dnsx
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing dnsx...
-go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
-if errorlevel 1 (echo   FAILED: dnsx) else (echo   OK: dnsx)
-
-:: ffuf
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing ffuf...
-go install github.com/ffuf/ffuf/v2@latest
-if errorlevel 1 (echo   FAILED: ffuf) else (echo   OK: ffuf)
-
-:: gau
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing gau...
-go install github.com/lc/gau/v2/cmd/gau@latest
-if errorlevel 1 (echo   FAILED: gau) else (echo   OK: gau)
-
-:: gospider
-set /a DONE+=1
-set /a PCT=DONE*100/TOTAL
-echo [%PCT%%%] (%DONE%/%TOTAL%) Installing gospider...
-go install github.com/jaeles-project/gospider@latest
-if errorlevel 1 (echo   FAILED: gospider) else (echo   OK: gospider)
-
-echo.
-echo =====================================================
-echo   Verifying installations...
-echo =====================================================
-for %%T in (subfinder nuclei katana naabu httpx dnsx ffuf gau gospider) do (
-    where %%T >nul 2>&1
-    if errorlevel 1 (echo   MISSING : %%T) else (echo   FOUND   : %%T)
+REM Check if Node.js is installed
+echo Checking for Node.js...
+node --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: Node.js is not installed or not in PATH
+    echo Please install Node.js from https://nodejs.org/
+    exit /b 1
+) else (
+    echo OK: Node.js found
+    node --version
 )
+echo.
 
+REM Install Wappalyzer globally
+echo Installing Wappalyzer...
+call npm install -g wappalyzer
+if %errorlevel% neq 0 (
+    echo ERROR: Failed to install Wappalyzer
+    exit /b 1
+)
+echo OK: Wappalyzer installed
 echo.
-echo Done. All tools install to %%GOPATH%%\bin (usually C:\Users\%USERNAME%\go\bin)
-echo Make sure that directory is in your PATH.
+
+REM Verify Wappalyzer installation
+echo Verifying Wappalyzer...
+wappalyzer --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo WARNING: Wappalyzer installed but not found in PATH
+    echo Try restarting your terminal or adding npm bin directory to PATH
+) else (
+    echo OK: Wappalyzer verified
+    wappalyzer --version
+)
 echo.
-pause
+
+REM Check for Amass (optional but recommended)
+echo Checking for Amass (subdomain enumeration)...
+amass --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo INFO: Amass not found. Installing via Chocolatey (if available)...
+    choco install amass -y >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo INFO: Could not install Amass via Chocolatey
+        echo Alternative: Download from https://github.com/owasp/amass/releases
+    ) else (
+        echo OK: Amass installed via Chocolatey
+    )
+) else (
+    echo OK: Amass found
+    amass --version
+)
+echo.
+
+REM Check for httpx (recommended for probing)
+echo Checking for httpx (HTTP prober)...
+httpx -version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo INFO: httpx not found
+    echo Install Go from https://golang.org/
+    echo Then run: go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+) else (
+    echo OK: httpx found
+    httpx -version
+)
+echo.
+
+echo ========================================
+echo Installation Summary
+echo ========================================
+echo.
+echo Required tools:
+echo   - Wappalyzer (fingerprinting): INSTALLED
+echo.
+echo Optional but recommended:
+echo   - Amass (subdomain enumeration)
+echo   - httpx (HTTP probing)
+echo   - nuclei (vulnerability scanning)
+echo.
+echo For more info, visit:
+echo   - Wappalyzer: https://www.wappalyzer.com/
+echo   - Amass: https://github.com/owasp/amass
+echo   - httpx: https://github.com/projectdiscovery/httpx
+echo   - nuclei: https://github.com/projectdiscovery/nuclei
+echo.
